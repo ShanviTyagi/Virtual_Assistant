@@ -16,38 +16,46 @@ for (const envPath of envCandidates) {
 }
 import connectDb from "./config/db.js"
 import authRouter from "./routes/auth.routes.js"
-import cors from "cors"
 import cookieParser from "cookie-parser"
 import userRouter from "./routes/user.routes.js"
 
 
 const app=express()
+app.set("trust proxy", 1)
+const normalizeOrigin=(origin)=>origin?.trim().replace(/\/$/, "") || ""
 const allowedOrigins=(process.env.CLIENT_ORIGINS || "")
     .split(",")
-    .map(origin => origin.trim())
+    .map(origin => normalizeOrigin(origin))
     .filter(Boolean)
 if(process.env.FRONTEND_URL){
-    allowedOrigins.push(process.env.FRONTEND_URL.trim().replace(/\/$/, ""))
+    allowedOrigins.push(normalizeOrigin(process.env.FRONTEND_URL))
 }
 if(process.env.VERCEL_URL){
-    allowedOrigins.push(`https://${process.env.VERCEL_URL.trim().replace(/\/$/, "")}`)
+    allowedOrigins.push(normalizeOrigin(`https://${process.env.VERCEL_URL}`))
 }
 const isAllowedOrigin=(origin)=>{
-    if(!origin) return true
-    if(allowedOrigins.includes(origin)) return true
-    return /^http:\/\/localhost:\d+$/.test(origin)
+    const normalizedOrigin=normalizeOrigin(origin)
+    if(!normalizedOrigin) return true
+    if(allowedOrigins.includes(normalizedOrigin)) return true
+    if(/^http:\/\/localhost:\d+$/.test(normalizedOrigin)) return true
+    if(/^https:\/\/.+\.vercel\.app$/.test(normalizedOrigin)) return true
+    return false
 }
-const corsOptions={
-    origin:(origin,callback)=>{
-        if(isAllowedOrigin(origin)){
-            return callback(null,true)
-        }
-        return callback(new Error("Not allowed by CORS"))
-    },
-    credentials:true
-}
-app.use(cors(corsOptions))
-app.options(/.*/, cors(corsOptions))
+app.use((req,res,next)=>{
+    const origin=normalizeOrigin(req.headers.origin)
+    if(origin && isAllowedOrigin(origin)){
+        res.header("Access-Control-Allow-Origin", origin)
+        res.header("Access-Control-Allow-Credentials", "true")
+        res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
+        const requestHeaders=req.headers["access-control-request-headers"]
+        res.header("Access-Control-Allow-Headers", typeof requestHeaders === "string" && requestHeaders.length > 0 ? requestHeaders : "Content-Type, Authorization")
+        res.header("Vary", "Origin")
+    }
+    if(req.method === "OPTIONS"){
+        return isAllowedOrigin(origin) ? res.sendStatus(204) : res.sendStatus(403)
+    }
+    next()
+})
 const port=process.env.PORT || 5000
 app.use(express.json())
 app.use(cookieParser())
