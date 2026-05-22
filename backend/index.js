@@ -26,12 +26,18 @@ const allowedOrigins=(process.env.CLIENT_ORIGINS || "")
     .split(",")
     .map(origin => origin.trim())
     .filter(Boolean)
+if(process.env.FRONTEND_URL){
+    allowedOrigins.push(process.env.FRONTEND_URL.trim().replace(/\/$/, ""))
+}
+if(process.env.VERCEL_URL){
+    allowedOrigins.push(`https://${process.env.VERCEL_URL.trim().replace(/\/$/, "")}`)
+}
 const isAllowedOrigin=(origin)=>{
     if(!origin) return true
     if(allowedOrigins.includes(origin)) return true
     return /^http:\/\/localhost:\d+$/.test(origin)
 }
-app.use(cors({
+const corsOptions={
     origin:(origin,callback)=>{
         if(isAllowedOrigin(origin)){
             return callback(null,true)
@@ -39,7 +45,9 @@ app.use(cors({
         return callback(new Error("Not allowed by CORS"))
     },
     credentials:true
-}))
+}
+app.use(cors(corsOptions))
+app.options(/.*/, cors(corsOptions))
 const port=process.env.PORT || 5000
 app.use(express.json())
 app.use(cookieParser())
