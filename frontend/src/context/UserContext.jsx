@@ -2,7 +2,8 @@ import axios from 'axios'
 import React, { createContext, useEffect, useState } from 'react'
 export const userDataContext=createContext()
 function UserContext({children}) {
-  const serverUrl=import.meta.env.VITE_API_URL?.replace(/\/$/, "") || ""
+  const defaultApiUrl="https://virtual-assistant-xod7.onrender.com"
+  const serverUrl=(import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/$/, "")
     const [userData,setUserData]=useState(null)
     const [frontendImage,setFrontendImage]=useState(null)
      const [backendImage,setBackendImage]=useState(null)
