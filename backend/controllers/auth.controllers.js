@@ -1,6 +1,7 @@
 import genToken from "../config/token.js"
 import User from "../models/user.model.js"
 import bcrypt from "bcryptjs"
+import getCookieOptions from "../config/cookie.js"
 export const signUp=async (req,res)=>{
 try {
     const {name,email,password}=req.body
@@ -21,12 +22,7 @@ try {
 
     const token=await genToken(user._id)
 
-    res.cookie("token",token,{
-        httpOnly:true,
-       maxAge:7*24*60*60*1000,
-       sameSite:"strict",
-       secure:false
-    })
+    res.cookie("token",token,getCookieOptions())
 
     return res.status(201).json(user)
 
@@ -51,12 +47,7 @@ try {
 
     const token=await genToken(user._id)
 
-    res.cookie("token",token,{
-        httpOnly:true,
-       maxAge:7*24*60*60*1000,
-       sameSite:"strict",
-       secure:false
-    })
+    res.cookie("token",token,getCookieOptions())
 
     return res.status(200).json(user)
 
@@ -67,7 +58,7 @@ try {
 
 export const logOut=async (req,res)=>{
     try {
-        res.clearCookie("token")
+        res.clearCookie("token",getCookieOptions())
          return res.status(200).json({message:"log out successfully"})
     } catch (error) {
          return res.status(500).json({message:`logout error ${error}`})
